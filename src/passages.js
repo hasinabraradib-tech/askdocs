@@ -53,7 +53,10 @@ export function splitIntoPassages (content) {
     // A heading always opens a new passage: the text under "Sick leave" should
     // not be searched as part of the holiday section above it.
     const isHeading = paragraph.text.startsWith('#')
-    if (last && !isHeading && last.text.length + paragraph.text.length < TARGET_CHARS) {
+    // Unless the passage so far is only a heading, as with "# Expenses" right
+    // above "## What you can claim": alone it would match nothing useful.
+    const lastIsBareHeading = last && last.text.split('\n').every((l) => l.startsWith('#'))
+    if (last && (lastIsBareHeading || (!isHeading && last.text.length + paragraph.text.length < TARGET_CHARS))) {
       last.text += `\n\n${paragraph.text}`
     } else {
       passages.push({ ...paragraph })
