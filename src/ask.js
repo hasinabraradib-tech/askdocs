@@ -25,6 +25,12 @@ const NOT_FOUND = 'I could not find that in your documents.'
 const INSTRUCTIONS = `Answer the question in one or two sentences, using only the notes you are given.
 If the notes do not answer the question, reply only: ${NOT_FOUND}`
 
+// The model is told the exact refusal but does not always use it: asked about
+// lab reports against the handbook samples, it replied "I could not find the
+// answer to this question in the provided notes." Matching only the exact
+// sentence then listed three unrelated passages as if they backed an answer.
+const REFUSAL = /\b(could not|couldn't|cannot|can't|unable to) find\b|\bnot (mentioned|found) in the\b/i
+
 const ids = []
 let workspace
 
@@ -81,7 +87,7 @@ try {
   console.log()
 
   // Listing the passages under "not found" would suggest they back an answer.
-  if (!answer.includes(NOT_FOUND)) {
+  if (!REFUSAL.test(answer)) {
     console.log(`\n${style(BOLD, 'Sources')}`)
     found.forEach((hit) => {
       const where = hit.source ? `${hit.source.file}:${hit.source.line}` : '(unknown file)'
