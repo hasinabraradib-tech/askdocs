@@ -11,9 +11,9 @@ export const EMBED_MODEL = GTE_LARGE_FP16
 // Reads the retrieved passages and writes the answer.
 export const LLM_MODEL = LLAMA_3_2_1B_INST_Q4_0
 
-// Every index and question goes through this one named store, so indexing a
-// new folder replaces the old one instead of mixing the two.
-export const WORKSPACE = 'askdocs'
+// Each named index is its own vector store, so "work" and "uni" never mix.
+// Re-indexing a name replaces that store and leaves the others alone.
+export const workspaceFor = (index) => `askdocs-${index}`
 
 /**
  * Load a model and show how far along the download is.

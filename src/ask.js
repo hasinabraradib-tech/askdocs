@@ -1,6 +1,7 @@
-// Ask a question about the indexed folder. `npm run ask -- "question"`
+// Ask a question about an indexed folder. `npm run ask -- "question" [--index name]`
 import { ragSearch, ragCloseWorkspace, completion, unloadModel, close } from '@qvac/sdk'
-import { EMBED_MODEL, LLM_MODEL, WORKSPACE, load } from './models.js'
+import { EMBED_MODEL, LLM_MODEL, workspaceFor, load } from './models.js'
+import { parseCli, DEFAULT_INDEX } from './args.js'
 import { loadSources } from './store.js'
 
 // How many passages to search for, and how far below the best match one can
@@ -24,21 +25,25 @@ const NOT_FOUND = 'I could not find that in your documents.'
 const INSTRUCTIONS = `Answer the question in one or two sentences, using only the notes you are given.
 If the notes do not answer the question, reply only: ${NOT_FOUND}`
 
-const question = process.argv.slice(2).join(' ').trim()
 const ids = []
+let workspace
 
 try {
-  if (!question) throw new Error('Usage: npm run ask -- "your question"')
+  const { positionals, index } = parseCli()
+  const question = positionals.join(' ').trim()
+  if (!question) throw new Error('Usage: npm run ask -- "your question" [--index name]')
 
-  const sources = loadSources()
-  if (!sources) throw new Error('Nothing is indexed yet. Run: npm run index -- <folder>')
+  const flag = index === DEFAULT_INDEX ? '' : ` --index ${index}`
+  const sources = loadSources(index)
+  if (!sources) throw new Error(`No index named "${index}". Run: npm run index -- <folder>${flag}`)
+  workspace = workspaceFor(index)
 
   const embedId = await load(EMBED_MODEL, 'embedding model')
   ids.push(embedId)
 
   process.stderr.write('  searching your documents...\n')
-  const hits = await ragSearch({ modelId: embedId, workspace: WORKSPACE, query: question, topK: TOP_K })
-  if (hits.length === 0) throw new Error('The index is empty. Run: npm run index -- <folder>')
+  const hits = await ragSearch({ modelId: embedId, workspace, query: question, topK: TOP_K })
+  if (hits.length === 0) throw new Error(`The index is empty. Run: npm run index -- <folder>${flag}`)
 
   // Trace every hit back to the file and line it was read from.
   const best = hits[0].score
@@ -87,7 +92,7 @@ try {
   console.error(`\n  ${error?.message ?? error}`)
   process.exitCode = 1
 } finally {
-  await ragCloseWorkspace({ workspace: WORKSPACE }).catch(() => {})
+  if (workspace) await ragCloseWorkspace({ workspace }).catch(() => {})
   for (const modelId of ids) await unloadModel({ modelId }).catch(() => {})
   await close().catch(() => {})
 }

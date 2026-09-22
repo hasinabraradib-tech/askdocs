@@ -42,7 +42,15 @@ $ npm run ask -- "What is the office wifi password?"
 A: I could not find that in your documents.
 ```
 
-Running `index` again replaces the previous index, so point it at your own notes folder whenever you like. The first run downloads the model weights; every run after that is offline.
+**3. Keep separate folders apart** with `--index`. Each name is its own store, so a question about your course notes never pulls in your work handbook:
+
+```bash
+npm run index -- ~/notes/uni --index uni
+npm run ask -- "When are lab reports due?" --index uni
+npm run indexes          # list every index, its folder and when it was built
+```
+
+Without `--index`, both commands use an index called `default`. Running `index` again with the same name replaces that index and leaves the others alone. The first run downloads the model weights; every run after that is offline.
 
 `samples/` holds three short pages of a made-up team handbook to try it on.
 
@@ -77,7 +85,7 @@ Running `index` again replaces the previous index, so point it at your own notes
 ## How it works
 
 1. **Split.** `src/passages.js` cuts each file into passages along paragraph lines, and every heading starts a new passage. Short paragraphs in one section are joined, so a heading is never stored on its own.
-2. **Index.** `ragIngest` embeds the passages with `chunk: false`, because they are already split. The vector store keeps only text, so `src/store.js` also writes `.askdocs/sources.json`, which maps each passage back to its file and line.
+2. **Index.** `ragIngest` embeds the passages with `chunk: false`, because they are already split. Each named index is its own workspace in the vector store. The store keeps only text, so `src/store.js` also writes `.askdocs/<name>.json`, which maps each passage back to its file and line.
 3. **Search.** `ragSearch` returns the three closest passages. Only those within 0.05 of the best score are kept.
 4. **Answer.** `completion` at `temp: 0` answers from the kept passages, and the sources printed underneath are exactly the passages it was shown.
 
@@ -97,7 +105,6 @@ These were measured on the sample notes, not guessed.
 
 - **Wording matters more than it should.** "What happens if I miss a page at night?" gets "could not find", but "What happens if I don't acknowledge a page in time?" is answered correctly from the same passage. The small model plays it safe when the question and the text don't share words.
 - **Text files only.** PDFs and Word documents are not read yet.
-- **One index at a time.** Indexing a new folder replaces the previous one.
 - The SDK marks its built-in vector store as a prototype. It is fine for a folder of notes but not for millions of documents.
 
 ## Project structure
@@ -107,9 +114,11 @@ askdocs/
 ├── src/
 │   ├── models.js    Model choices and a loader with progress
 │   ├── passages.js  Reading a folder and splitting it into passages
-│   ├── store.js     Mapping passages back to file and line
+│   ├── store.js     Mapping passages back to file and line, per index
+│   ├── args.js      The --index option
 │   ├── index.js     npm run index
-│   └── ask.js       npm run ask
+│   ├── ask.js       npm run ask
+│   └── indexes.js   npm run indexes
 ├── samples/         A small made-up handbook to try it on
 └── assets/          Screenshot for this README
 ```

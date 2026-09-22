@@ -9,7 +9,8 @@
   },
   "scripts": {
     "index": "node src/index.js",
-    "ask": "node src/ask.js"
+    "ask": "node src/ask.js",
+    "indexes": "node src/indexes.js"
   },
   "dependencies": {
     "@qvac/sdk": "^0.19.1"
