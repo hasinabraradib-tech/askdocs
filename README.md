@@ -2,16 +2,7 @@
 
 Ask questions about your own notes from the terminal, and get a short answer plus the file and line it came from. Everything runs on your machine with Tether's [QVAC SDK](https://qvac.tether.io).
 
-```
-$ npm run ask -- "How long do I have to submit a receipt?"
-
-Q: How long do I have to submit a receipt?
-
-A: You have 30 days to submit a receipt for approved expenses.
-
-Sources
-  expenses.md:9 score 0.80
-```
+![askdocs answering a question about the sample handbook, with the file and line it came from](assets/demo.png)
 
 Your notes are never uploaded anywhere. There is no API key and no per-question bill, and after the first run it works offline.
 
@@ -119,7 +110,8 @@ askdocs/
 │   ├── store.js     Mapping passages back to file and line
 │   ├── index.js     npm run index
 │   └── ask.js       npm run ask
-└── samples/         A small made-up handbook to try it on
+├── samples/         A small made-up handbook to try it on
+└── assets/          Screenshot for this README
 ```
 
 ## License
