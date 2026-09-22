@@ -1,21 +1,23 @@
-// Index a folder so it can be asked about. `npm run index -- <folder> [--index name]`
-import { ragIngest, ragCloseWorkspace, ragDeleteWorkspace, unloadModel, close } from '@qvac/sdk'
+// Index a folder so it can be asked about. `npm run index -- <folder> [--index name] [--watch]`
+import { ragCloseWorkspace, ragDeleteWorkspace, unloadModel, close } from '@qvac/sdk'
 import { existsSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { EMBED_MODEL, workspaceFor, load } from './models.js'
 import { parseCli, DEFAULT_INDEX } from './args.js'
 import { readFolder, TEXT_EXTENSIONS } from './passages.js'
 import { saveSources, plural } from './store.js'
+import { embedPassages } from './embed.js'
+import { watchFolder } from './watch.js'
 
 let modelId
 let workspace
 
 try {
-  const { positionals: [folder], index } = parseCli()
+  const { positionals: [folder], index, watch } = parseCli()
   workspace = workspaceFor(index)
 
   if (!folder || !existsSync(folder) || !statSync(folder).isDirectory()) {
-    throw new Error('Usage: npm run index -- <folder of notes> [--index name]')
+    throw new Error('Usage: npm run index -- <folder of notes> [--index name] [--watch]')
   }
 
   const passages = readFolder(folder)
@@ -31,26 +33,29 @@ try {
   // store every passage twice, and each would come back twice in a search.
   await ragDeleteWorkspace({ workspace }).catch(() => {})
 
-  const result = await ragIngest({
+  const embedded = await embedPassages({
     modelId,
     workspace,
-    documents: passages.map((p) => p.text),
-    // Already split along paragraph lines above; letting the SDK re-chunk
-    // would cut passages at arbitrary points and break the map back to files.
-    chunk: false,
+    passages,
     onProgress: (stage, current, total) => {
       if (process.stderr.isTTY) process.stderr.write(`\r  ${stage} ${current}/${total}   `)
     }
   })
   if (process.stderr.isTTY) process.stderr.write('\n')
 
-  saveSources({ name: index, folder: resolve(folder), passages })
+  saveSources({ name: index, folder: resolve(folder), passages: embedded })
 
-  const dropped = result.droppedIndices.length
-  console.log(`\nIndexed ${plural(passages.length - dropped, 'passage')} from ${plural(files, 'file')} in ${folder} as "${index}".`)
+  const dropped = passages.length - embedded.length
+  console.log(`\nIndexed ${plural(embedded.length, 'passage')} from ${plural(files, 'file')} in ${folder} as "${index}".`)
   if (dropped) console.log(`${dropped} could not be embedded and were skipped.`)
   const flag = index === DEFAULT_INDEX ? '' : ` --index ${index}`
   console.log(`Ask a question with: npm run ask -- "your question"${flag}`)
+
+  if (watch) {
+    // Released first, so questions can be asked while this keeps running.
+    await ragCloseWorkspace({ workspace }).catch(() => {})
+    await watchFolder({ modelId, workspace, index, root: resolve(folder), passages: embedded })
+  }
 } catch (error) {
   console.error(`\n  ${error?.message ?? error}`)
   process.exitCode = 1

@@ -1,4 +1,4 @@
-// The --index option shared by every command.
+// Options shared by the commands: --index everywhere, --watch for index.
 import { parseArgs } from 'node:util'
 
 export const DEFAULT_INDEX = 'default'
@@ -8,12 +8,15 @@ export const DEFAULT_INDEX = 'default'
 const INDEX_NAME = /^[a-z0-9][a-z0-9_-]*$/i
 
 /**
- * @returns {{ positionals: string[], index: string }}
+ * @returns {{ positionals: string[], index: string, watch: boolean }}
  */
 export function parseCli (argv = process.argv.slice(2)) {
   const { values, positionals } = parseArgs({
     args: argv,
-    options: { index: { type: 'string', short: 'i' } },
+    options: {
+      index: { type: 'string', short: 'i' },
+      watch: { type: 'boolean', short: 'w' }
+    },
     allowPositionals: true
   })
 
@@ -22,5 +25,5 @@ export function parseCli (argv = process.argv.slice(2)) {
     throw new Error(`--index takes a name made of letters, numbers, - and _ (got "${index}")`)
   }
 
-  return { positionals, index }
+  return { positionals, index, watch: values.watch ?? false }
 }

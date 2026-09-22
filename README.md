@@ -52,6 +52,14 @@ npm run indexes          # list every index, its folder and when it was built
 
 Without `--index`, both commands use an index called `default`. Running `index` again with the same name replaces that index and leaves the others alone. The first run downloads the model weights; every run after that is offline.
 
+**4. Keep an index up to date while you write** with `--watch`:
+
+```bash
+npm run index -- ~/notes/uni --index uni --watch
+```
+
+It indexes the folder, then keeps running. When you save, add or delete a note, only that file is re-embedded: its old passages are removed with `ragDeleteEmbeddings` and the new ones added. You can ask questions from another terminal while it runs. Press Ctrl+C to stop.
+
 `samples/` holds three short pages of a made-up team handbook to try it on.
 
 ## QVAC SDK version
@@ -72,6 +80,7 @@ Without `--index`, both commands use an index called `default`. Running `index` 
 | `ragIngest` | `src/index.js` | Embeds every passage and stores it in a local vector store. |
 | `ragSearch` | `src/ask.js` | Finds the passages closest in meaning to the question. |
 | `completion` | `src/ask.js` | Writes the answer from those passages. |
+| `ragDeleteEmbeddings` | `src/watch.js` | Removes a changed file's old passages in watch mode. |
 | `ragDeleteWorkspace`, `ragCloseWorkspace` | `src/index.js`, `src/ask.js` | Clears the old index before re-indexing; releases the store when done. |
 | `unloadModel`, `close` | `src/index.js`, `src/ask.js` | Frees the models and stops the SDK worker so the process exits. |
 
@@ -115,8 +124,10 @@ askdocs/
 │   ├── models.js    Model choices and a loader with progress
 │   ├── passages.js  Reading a folder and splitting it into passages
 │   ├── store.js     Mapping passages back to file and line, per index
-│   ├── args.js      The --index option
+│   ├── args.js      The --index and --watch options
+│   ├── embed.js     Embedding passages and keeping their store ids
 │   ├── index.js     npm run index
+│   ├── watch.js     Re-embedding only the files that change
 │   ├── ask.js       npm run ask
 │   └── indexes.js   npm run indexes
 ├── samples/         A small made-up handbook to try it on
